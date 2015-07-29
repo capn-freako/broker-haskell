@@ -23,5 +23,9 @@ main = do
     let res = brokerInit
     case res of
       Left e  -> putStrLn e
-      Right r -> putStrLn "Success!"
+      Right r -> do
+        let ep = endpoint "ep_1"
+        case ep of
+          Nothing -> putStrLn "Failure!"
+          Just _ -> putStrLn "Success!"
 

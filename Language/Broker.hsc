@@ -12,9 +12,11 @@
 --------------------------------------------------------------------------------
 
 {-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE EmptyDataDecls #-}
 
 module Language.Broker (
     brokerInit
+  , endpoint
   , DottedQuad(..)
 ) where
 
@@ -38,7 +40,7 @@ newtype BrokerFlag = BrokerFlag {unBrokerFlag :: CInt}
 combineFlags :: [BrokerFlag] -> BrokerFlag
 combineFlags = BrokerFlag . foldr ((.|.) . unBrokerFlag) 0
 
-newtype Broker = Broker (Ptr Broker)
+data Endpoint
 
 data DottedQuad = DottedQuad {
     first  :: Int
@@ -50,13 +52,25 @@ instance Show DottedQuad where
     show dq = show (first dq) ++ "." ++ show (second dq) ++ "." ++ show (third dq) ++ "." ++ show (fourth dq)
 
 foreign import ccall "broker.h broker_init"
-     c_broker_init :: IO (CInt)
+     c_broker_init :: IO CInt
 brokerInit :: Either String ()
 brokerInit = unsafePerformIO $ do
     res <- c_broker_init
     return $ if res /= 0
                then (Left "ERROR: Broker initialization failed!")
                else (Right ())
+
+foreign import ccall "broker.h broker_endpoint_create"
+    c_broker_endpoint_create :: CString -> IO (Ptr Endpoint)
+endpoint :: String -> Maybe (ForeignPtr Endpoint)
+endpoint name = unsafePerformIO $
+    withCString name $ \cs -> do
+        res <- c_broker_endpoint_create cs
+        if res == nullPtr
+            then return Nothing
+            else do
+                fp <- newForeignPtr finalizerFree res
+                return $ Just fp
 
 --foreign import ccall "Broker.h bro_conn_new_str"
 --     c_bro_conn_new_str :: CString -> CInt -> IO (Ptr Broker)
