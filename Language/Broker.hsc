@@ -17,7 +17,10 @@
 module Language.Broker (
     brokerInit
   , endpoint
+  , peerRemotely
   , DottedQuad(..)
+  , Endpoint
+  , Peering
 ) where
 
 import Foreign
@@ -41,6 +44,7 @@ combineFlags :: [BrokerFlag] -> BrokerFlag
 combineFlags = BrokerFlag . foldr ((.|.) . unBrokerFlag) 0
 
 data Endpoint
+data Peering
 
 data DottedQuad = DottedQuad {
     first  :: Int
@@ -53,12 +57,12 @@ instance Show DottedQuad where
 
 foreign import ccall "broker.h broker_init"
      c_broker_init :: IO CInt
-brokerInit :: Either String ()
+brokerInit :: Maybe ()
 brokerInit = unsafePerformIO $ do
     res <- c_broker_init
     return $ if res /= 0
-               then (Left "ERROR: Broker initialization failed!")
-               else (Right ())
+               then Nothing
+               else Just ()
 
 foreign import ccall "broker.h broker_endpoint_create"
     c_broker_endpoint_create :: CString -> IO (Ptr Endpoint)
@@ -71,6 +75,19 @@ endpoint name = unsafePerformIO $
             else do
                 fp <- newForeignPtr finalizerFree res
                 return $ Just fp
+
+foreign import ccall "broker.h broker_endpoint_peer_remotely"
+    c_broker_endpoint_peer_remotely :: Ptr Endpoint -> CString -> CUInt -> CDouble -> IO (Ptr Peering)
+peerRemotely :: ForeignPtr Endpoint -> String -> Int -> Maybe (ForeignPtr Peering)
+peerRemotely ep addr port = unsafePerformIO $
+    withForeignPtr ep $ \p -> do
+        withCString addr $ \cs -> do
+            res <- c_broker_endpoint_peer_remotely p cs (fromIntegral port) 0
+            if res == nullPtr
+                then return Nothing
+                else do
+                    fp <- newForeignPtr finalizerFree res
+                    return $ Just fp
 
 --foreign import ccall "Broker.h bro_conn_new_str"
 --     c_bro_conn_new_str :: CString -> CInt -> IO (Ptr Broker)

@@ -13,19 +13,21 @@
 
 module Main where
 
-import Control.Monad
+import Data.Maybe
+import Foreign
 import Language.Broker
 
-hostStr = "127.0.0.1:47758"
+hostStr = "127.0.0.1"
+port    = 9999
+
+test :: Maybe (ForeignPtr Peering)
+test = do
+    brokerInit
+    ep <- endpoint "ep_1"
+    peerRemotely ep hostStr port
 
 main :: IO ()
-main = do
-    let res = brokerInit
-    case res of
-      Left e  -> putStrLn e
-      Right r -> do
-        let ep = endpoint "ep_1"
-        case ep of
-          Nothing -> putStrLn "Failure!"
-          Just _ -> putStrLn "Success!"
+main = putStrLn $ if isNothing test
+                    then "Failure."
+                    else "Success!"
 
