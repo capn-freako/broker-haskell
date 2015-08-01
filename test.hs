@@ -20,11 +20,12 @@ import Language.Broker
 hostStr = "127.0.0.1"
 port    = 9999
 
-test :: Maybe (ForeignPtr Peering)
+test :: Maybe (Ptr Queue)
 test = do
     brokerInit
     ep <- endpoint "ep_1"
-    peerRemotely ep hostStr port
+    pr <- peerRemotely ep hostStr port
+    peerStatus ep
 
 main :: IO ()
 main = putStrLn $ if isNothing test

@@ -18,9 +18,11 @@ module Language.Broker (
     brokerInit
   , endpoint
   , peerRemotely
+  , peerStatus
   , DottedQuad(..)
   , Endpoint
   , Peering
+  , Queue
 ) where
 
 import Foreign
@@ -45,6 +47,7 @@ combineFlags = BrokerFlag . foldr ((.|.) . unBrokerFlag) 0
 
 data Endpoint
 data Peering
+data Queue
 
 data DottedQuad = DottedQuad {
     first  :: Int
@@ -82,42 +85,20 @@ peerRemotely :: ForeignPtr Endpoint -> String -> Int -> Maybe (ForeignPtr Peerin
 peerRemotely ep addr port = unsafePerformIO $
     withForeignPtr ep $ \p -> do
         withCString addr $ \cs -> do
-            res <- c_broker_endpoint_peer_remotely p cs (fromIntegral port) 0
+            res <- c_broker_endpoint_peer_remotely p cs (fromIntegral port) 5
             if res == nullPtr
                 then return Nothing
                 else do
                     fp <- newForeignPtr finalizerFree res
                     return $ Just fp
 
---foreign import ccall "Broker.h bro_conn_new_str"
---     c_bro_conn_new_str :: CString -> CInt -> IO (Ptr Broker)
---BrokerNewStr :: String -> [BrokerFlag] -> Either String (Ptr Broker)
---BrokerNewStr hostStr flags = unsafePerformIO $
---    withCString hostStr $ \cs -> do
---        res <- c_bro_conn_new_str cs $ unBrokerFlag $ combineFlags flags
---        if res == nullPtr
---          then
---            return (Left "Failed to acquire connection.")
---          else
---            return (Right res)
---
---foreign import ccall "Broker.h bro_event_registry_add"
---     c_bro_event_registry_add :: Ptr Broker -> CString -> FunPtr (Ptr Broker -> Ptr () -> Ptr CDouble -> Ptr CDouble -> Ptr CULong -> IO ()) -> Ptr () -> IO ()
---broEventRegistryAdd :: (Ptr Broker) -> String -> FunPtr (Ptr Broker -> Ptr () -> Ptr CDouble -> Ptr CDouble -> Ptr CULong -> IO ()) -> IO ()
---broEventRegistryAdd bc evStr callBack = withCString evStr $ \cs -> c_bro_event_registry_add bc cs callBack nullPtr
---
---foreign import ccall "Broker.h bro_conn_connect"
---     c_bro_conn_connect :: (Ptr Broker) -> CInt
---BrokerConnect :: (Ptr Broker) -> Bool
---BrokerConnect bc = if c_bro_conn_connect bc == 0
---                      then False
---                      else True
---
----- a "wrapper" import gives a factory for converting a Haskell function to a foreign function pointer
---foreign import ccall "wrapper"
---  wrap :: (Ptr Broker -> Ptr () -> Ptr CDouble -> Ptr CDouble -> Ptr CULong -> IO ()) -> IO (FunPtr (Ptr Broker -> Ptr () -> Ptr CDouble -> Ptr CDouble -> Ptr CULong -> IO ()))
---
----- here's the function to use as a callback
---broPong :: Ptr Broker -> Ptr () -> Ptr CDouble -> Ptr CDouble -> Ptr CULong -> IO ()
---broPong _ _ _ _ _ = putStrLn "I just got ponged!"
-
+foreign import ccall "broker.h broker_endpoint_outgoing_connection_status"
+    c_broker_endpoint_outgoing_connection_status :: Ptr Endpoint -> IO (Ptr Queue)
+peerStatus :: ForeignPtr Endpoint -> Maybe (Ptr Queue)
+peerStatus ep = unsafePerformIO $
+    withForeignPtr ep $ \p -> do
+        res <- c_broker_endpoint_outgoing_connection_status p
+        return $ if res == nullPtr
+            then Nothing
+            else Just res
+        
