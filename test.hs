@@ -13,22 +13,31 @@
 
 module Main where
 
-import Data.Maybe
-import Foreign
 import Language.Broker
 
-hostStr = "127.0.0.1"
-port    = 9999
-
-test :: Maybe (Ptr Queue)
-test = do
-    brokerInit
-    ep <- endpoint "ep_1"
-    pr <- peerRemotely ep hostStr port
-    peerStatus ep
+test :: String
+test = let res = do brokerInit
+                    -- Endpoint creation/peering.
+                    ep1 <- endpoint "ep_1" [kEndpointAutoPublish, kEndpointAutoAdvertise]
+                    ep2 <- endpoint "ep_2" [kEndpointAutoPublish, kEndpointAutoAdvertise]
+                    ts <- makeString ""
+                    mq2 <- createMsgQueue ts ep2
+                    peerLocally ep2 ep1
+                    -- Connection confirmation.
+                    sq <- peerStatus ep2
+                    getStatus sq
+                    -- Message sending.
+                    sendMsg ep1 "test" "Hello, World!"
+                    msgs <- fetchMsgs mq2
+                    return msgs
+--                    Left "Debugging."
+--                    msg <- getMsg msgs 0
+--                    item <- getMsgItem msg 0
+--                    dataToString item
+       in case res of
+            Left s -> s
+            Right bs  -> "There are " ++ show (msgQueueSize bs) ++ " messages in the queue."
 
 main :: IO ()
-main = putStrLn $ if isNothing test
-                    then "Failure."
-                    else "Success!"
+main = putStrLn $ test
 
