@@ -28,15 +28,15 @@ test = let res = do brokerInit
                     getStatus sq
                     -- Message sending.
                     sendMsg ep1 "test" "Hello, World!"
+                    -- Message fetching/unwrapping.
                     msgs <- fetchMsgs mq2
-                    return msgs
---                    Left "Debugging."
---                    msg <- getMsg msgs 0
---                    item <- getMsgItem msg 0
---                    dataToString item
+                    msg <- getMsg msgs 0
+                    item <- getMsgItem msg 0
+                    bs <- dataToString item
+                    Right (bstringToString bs)
        in case res of
             Left s -> s
-            Right bs  -> "There are " ++ show (msgQueueSize bs) ++ " messages in the queue."
+            Right bs  -> "Message received: " ++ bs
 
 main :: IO ()
 main = putStrLn $ test
