@@ -14,6 +14,7 @@
 module Main where
 
 import Language.Broker
+import Test.Hspec
 
 test :: String
 test = let res = do brokerInit
@@ -37,7 +38,12 @@ test = let res = do brokerInit
        in case res of
             Left s -> s
             Right bs  -> "Message received: " ++ bs
-
+ 
 main :: IO ()
-main = putStrLn $ test
+main = hspec $ do
+  describe "Test simple message passing between endpoints." $ do
+    it "Peer endpoints and pass a message between them." $ do
+      test `shouldBe` "Message received: Hello, World!"
+
+--main = putStrLn $ test
 

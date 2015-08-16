@@ -41,13 +41,12 @@ module Language.Broker (
 ) where
 
 import Foreign
-    hiding (unsafePerformIO)
 import Foreign.C.String
 import Foreign.C.Types
-import Foreign.Ptr(FunPtr, freeHaskellFunPtr)
+--import Foreign.Ptr(FunPtr, freeHaskellFunPtr)
 import System.IO.Unsafe (unsafePerformIO)
 
-import qualified Data.ByteString as BS
+--import qualified Data.ByteString as BS
 
 #include <broker.h>
 
@@ -168,16 +167,6 @@ makeString s = unsafePerformIO $ do
             else do
                 fp <- newForeignPtr finalizerFree res
                 return $ Right fp
-
-foreign import ccall "broker.h broker_data_as_vector"
-    c_broker_data_as_vector :: Ptr BData -> IO (Ptr BVector)
-dataAsVector :: ForeignPtr BData -> Either String (Ptr BVector)
-dataAsVector fp_bd = unsafePerformIO $ do
-    withForeignPtr fp_bd $ \p_bd -> do
-        res <- c_broker_data_as_vector p_bd
-        if res == nullPtr
-            then return $ Left "dataAsVector: Failed!"
-            else return $ Right res
 
 foreign import ccall "broker.h broker_data_from_string"
     c_broker_data_from_string :: Ptr BString -> IO (Ptr BData)

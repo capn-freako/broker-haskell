@@ -7,6 +7,7 @@ synopsis:            Haskell bindings to Broker, Bro's messaging library.
 description:         Provides Language.Broker, a set of Haskell FFI wrappers around
                      the C-interface to Broker (libbroker), the external messaging
                      interface to Bro, a network security tool.
+-- description:         
 homepage:            https://github.com/capn-freako/broker-haskell
 license:             BSD3
 license-file:        LICENSE
@@ -22,7 +23,21 @@ library
   exposed-modules:     Language.Broker
   -- other-modules:       
   other-extensions:    ForeignFunctionInterface, EmptyDataDecls
-  build-depends:       base >=4.8 && <4.9, bytestring >=0.10 && <0.11
+  build-depends:       base >=4.8 && <4.9
   -- hs-source-dirs:      
   build-tools:         hsc2hs
   default-language:    Haskell2010
+  ghc-options:         -Wall
+  extra-libraries:     broker
+
+test-suite tests
+    ghc-options:         -Wall
+    default-extensions:  OverloadedStrings
+    type:                exitcode-stdio-1.0
+    main-is:             test.hs
+    build-depends:       base,
+                         broker-haskell,
+                         hspec >= 1.8,
+                         bytestring
+    default-language:    Haskell2010
+
